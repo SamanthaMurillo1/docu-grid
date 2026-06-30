@@ -1,30 +1,166 @@
-import { signInWithPopup } from "firebase/auth";
+import { useState, type FormEvent } from "react";
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signInWithPopup,
+  updateProfile,
+} from "firebase/auth";
 import { auth, googleProvider } from "../firebase";
 import { useNavigate } from "react-router-dom";
 import { FileText } from "lucide-react";
 
 export default function Login() {
   const navigate = useNavigate();
+  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const isSignUp = mode === "signup";
 
   const handleGoogleSignIn = async () => {
     try {
+      setError(null);
       await signInWithPopup(auth, googleProvider);
       navigate("/");
     } catch (error) {
       console.error("Error signing in with Google:", error);
+      setError("Google sign-in failed. Check your Firebase Auth settings and try again.");
+    }
+  };
+
+  const handleEmailAuth = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setError(null);
+    setIsSubmitting(true);
+
+    try {
+      if (isSignUp) {
+        const credential = await createUserWithEmailAndPassword(auth, email, password);
+        await updateProfile(credential.user, { displayName: username.trim() });
+      } else {
+        await signInWithEmailAndPassword(auth, email, password);
+      }
+
+      navigate("/");
+    } catch (error) {
+      console.error("Error signing in with email and password:", error);
+      setError(isSignUp ? "Could not create that account. Check the details and try again." : "Invalid email or password.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-      <div className="max-w-md w-full bg-white p-8 rounded-2xl shadow-xl shadow-gray-200/50 text-center">
+      <div className="max-w-md w-full bg-white p-8 rounded-2xl shadow-xl shadow-gray-200/50">
         <div className="w-16 h-16 bg-indigo-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
           <FileText className="w-8 h-8 text-indigo-600" />
         </div>
-        <h1 className="text-3xl font-bold tracking-tight text-gray-900 mb-2">Welcome to DocuGrid</h1>
-        <p className="text-gray-500 mb-8">
+        <h1 className="text-3xl font-bold tracking-tight text-gray-900 mb-2 text-center">Welcome to DocuGrid</h1>
+        <p className="text-gray-500 mb-8 text-center">
           Automate expense categorization and data extraction with intelligent OCR.
         </p>
+
+        <div className="grid grid-cols-2 gap-2 bg-gray-100 p-1 rounded-xl mb-6">
+          <button
+            type="button"
+            onClick={() => {
+              setMode("signin");
+              setError(null);
+            }}
+            className={`py-2 rounded-lg text-sm font-medium transition-all ${
+              !isSignUp ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            Sign in
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setMode("signup");
+              setError(null);
+            }}
+            className={`py-2 rounded-lg text-sm font-medium transition-all ${
+              isSignUp ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            Sign up
+          </button>
+        </div>
+
+        <form onSubmit={handleEmailAuth} className="space-y-4">
+          {isSignUp && (
+            <div className="text-left">
+              <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
+                Username
+              </label>
+              <input
+                id="username"
+                type="text"
+                value={username}
+                onChange={(event) => setUsername(event.target.value)}
+                className="w-full rounded-xl border border-gray-300 px-4 py-3 text-gray-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                placeholder="Your name"
+                required={isSignUp}
+              />
+            </div>
+          )}
+
+          <div className="text-left">
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+              Email
+            </label>
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              className="w-full rounded-xl border border-gray-300 px-4 py-3 text-gray-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+              placeholder="you@example.com"
+              required
+            />
+          </div>
+
+          <div className="text-left">
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+              Password
+            </label>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              className="w-full rounded-xl border border-gray-300 px-4 py-3 text-gray-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+              placeholder="At least 6 characters"
+              minLength={6}
+              required
+            />
+          </div>
+
+          {error && (
+            <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {error}
+            </div>
+          )}
+
+          <button
+            id="submit"
+            type="submit"
+            disabled={isSubmitting}
+            className="w-full bg-indigo-600 text-white px-6 py-3 rounded-xl font-medium hover:bg-indigo-700 transition-all shadow-sm active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
+          >
+            {isSubmitting ? "Please wait..." : isSignUp ? "Create account" : "Sign in"}
+          </button>
+        </form>
+
+        <div className="flex items-center gap-3 my-6">
+          <div className="h-px flex-1 bg-gray-200" />
+          <span className="text-xs font-medium uppercase text-gray-400">or</span>
+          <div className="h-px flex-1 bg-gray-200" />
+        </div>
         
         <button
           onClick={handleGoogleSignIn}
