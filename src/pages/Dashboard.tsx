@@ -157,7 +157,7 @@ export default function Dashboard({ user }: { user: User }) {
             <Wallet className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-sm font-medium text-gray-500">Net Cash Flow</p>
+            <p className="text-sm font-medium text-gray-500">Net (Income − Expenses)</p>
             <p className={`text-2xl font-bold ${netCashFlow >= 0 ? "text-green-700" : "text-red-700"}`}>
               {netCashFlow >= 0 ? "+" : "-"}${Math.abs(netCashFlow).toFixed(2)}
             </p>
