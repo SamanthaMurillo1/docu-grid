@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import { User } from "firebase/auth";
 import { collection, query, where, getDocs, orderBy } from "firebase/firestore";
 import { db } from "../firebase";
-import { DocumentRecord } from "../types";
-import { FileText, TrendingUp, DollarSign, Calendar } from "lucide-react";
+import { DocumentRecord, IncomeRecord } from "../types";
+import { FileText, TrendingUp, DollarSign, Calendar, Wallet } from "lucide-react";
 import { format } from "date-fns";
 import {
   Area,
@@ -33,6 +33,7 @@ const COLORS = [
 
 export default function Dashboard({ user }: { user: User }) {
   const [documents, setDocuments] = useState<DocumentRecord[]>([]);
+  const [income, setIncome] = useState<IncomeRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -53,10 +54,28 @@ export default function Dashboard({ user }: { user: User }) {
       }
     }
 
+    async function fetchIncome() {
+      try {
+        const q = query(
+          collection(db, "income"),
+          where("userId", "==", user.uid),
+          orderBy("date", "desc")
+        );
+        const querySnapshot = await getDocs(q);
+        const records = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as IncomeRecord));
+        setIncome(records);
+      } catch (error) {
+        console.error("Error fetching income:", error);
+      }
+    }
+
     fetchDocuments();
+    fetchIncome();
   }, [user]);
 
   const totalSpent = documents.reduce((sum, doc) => sum + (doc.data.total || 0), 0);
+  const totalIncome = income.reduce((sum, r) => sum + (r.amount || 0), 0);
+  const netCashFlow = totalIncome - totalSpent;
 
   // Group by date for the cash flow trend chart
   const chartData = documents
@@ -98,7 +117,7 @@ export default function Dashboard({ user }: { user: User }) {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
           <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
             <FileText className="w-6 h-6" />
@@ -127,6 +146,20 @@ export default function Dashboard({ user }: { user: User }) {
             <p className="text-sm font-medium text-gray-500">Avg. Per Document</p>
             <p className="text-2xl font-bold text-gray-900">
               ${documents.length ? (totalSpent / documents.length).toFixed(2) : "0.00"}
+            </p>
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center gap-4">
+          <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+            netCashFlow >= 0 ? "bg-green-50 text-green-600" : "bg-red-50 text-red-600"
+          }`}>
+            <Wallet className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-gray-500">Net (Income − Expenses)</p>
+            <p className={`text-2xl font-bold ${netCashFlow >= 0 ? "text-green-700" : "text-red-700"}`}>
+              {netCashFlow >= 0 ? "+" : "-"}${Math.abs(netCashFlow).toFixed(2)}
             </p>
           </div>
         </div>
@@ -183,9 +216,7 @@ export default function Dashboard({ user }: { user: User }) {
                       contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                       formatter={(value: number) => `$${value.toFixed(2)}`}
                     />
-                    <Legend
-                      wrapperStyle={{ fontSize: '12px' }}
-                    />
+                    <Legend wrapperStyle={{ fontSize: '12px' }} />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
