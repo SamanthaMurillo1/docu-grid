@@ -10,6 +10,7 @@ export interface ExtractedData {
   date: string | null;
   subtotal: number | null;
   tax: number | null;
+  category: ExpenseCategory | null;
   total: number | null;
   items: LineItem[];
 }
@@ -33,3 +34,27 @@ export interface DocumentRecord {
   uploadedAt: number;
   data: ExtractedData;
 }
+
+export const EXPENSE_CATEGORIES = [
+  "Groceries",
+  "Restaurants & Dining",
+  "Coffee & Cafes",
+  "Transportation",
+  "Fuel & Gas",
+  "Travel & Lodging",
+  "Clothing & Apparel",
+  "Electronics",
+  "Home & Office Supplies",
+  "Health & Pharmacy",
+  "Personal Care",
+  "Entertainment",
+  "Subscriptions",
+  "Utilities",
+  "Insurance",
+  "Education",
+  "Gifts & Donations",
+  "Investments & Savings",
+  "Other",
+] as const;
+
+export type ExpenseCategory = typeof EXPENSE_CATEGORIES[number];

@@ -6,3 +6,12 @@ coverage/
 *.log
 .env*
 !.env.example
+# Firebase Admin SDK private key
+firebase-admin-key.json
+
+# Environment variables
+.env
+
+# Dependency folders
+node_modules/
+dist/
