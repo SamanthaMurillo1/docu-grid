@@ -24,6 +24,7 @@ export default function Mapping() {
   const [mappings, setMappings] = useState<MappedField[]>([
     { extractedKey: "storeName", excelColumn: "Vendor" },
     { extractedKey: "date", excelColumn: "Date" },
+    { extractedKey: "category", excelColumn: "Category" }, 
     { extractedKey: "subtotal", excelColumn: "Subtotal" },
     { extractedKey: "tax", excelColumn: "Tax Amount" },
     { extractedKey: "total", excelColumn: "Total Cost" },

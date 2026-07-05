@@ -6,7 +6,7 @@ import { GoogleGenAI } from "@google/genai";
 import { createServer as createViteServer } from "vite";
 import { applicationDefault, cert, initializeApp } from "firebase-admin/app";
 import fs from "fs";
-
+import { EXPENSE_CATEGORIES } from "./src/types.ts";
 // Initialize Firebase Admin
 try {
   // Try to find the service account key locally (for local dev)
@@ -47,17 +47,19 @@ async function startServer() {
       const base64Data = req.file.buffer.toString("base64");
       
       const prompt = `
-        Analyze this document (receipt, invoice, or financial document).
-        Extract the following fields and return them as a clean JSON object.
-        - storeName: The name of the store or vendor.
-        - date: The date of the transaction.
-        - subtotal: The amount before tax.
-        - tax: The tax amount.
-        - total: The total amount paid.
-        - items: An array of line items with "name", "quantity", and "price".
+      Analyze this document (receipt, invoice, or financial document).
+      Extract the following fields and return them as a clean JSON object.
+      - storeName: The name of the store or vendor.
+      - date: The date of the transaction.
+      - subtotal: The amount before tax.
+      - tax: The tax amount.
+      - total: The total amount paid.
+      - category: Choose the single best-fitting category from this exact list
+        (return the string exactly as written): ${EXPENSE_CATEGORIES.join(", ")}.
+      - items: An array of line items with "name", "quantity", and "price".
 
-        Return ONLY the raw JSON object, without markdown formatting like \`\`\`json.
-      `;
+      Return ONLY the raw JSON object, without markdown formatting like \`\`\`json.
+    `;
 
       const response = await ai.models.generateContent({
         model: "gemini-2.5-flash",
@@ -79,6 +81,13 @@ async function startServer() {
       }
 
       const extractedData = JSON.parse(jsonStr);
+
+      // Validate category against the allowed list — Gemini can occasionally
+      // drift from the exact strings we gave it, so fall back safely.
+      if (!EXPENSE_CATEGORIES.includes(extractedData.category)) {
+        extractedData.category = "Other";
+      }
+
       res.json(extractedData);
     } catch (error) {
       console.error("Error extracting document data:", error);
