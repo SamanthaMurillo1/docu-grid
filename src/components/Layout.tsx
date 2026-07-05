@@ -1,7 +1,7 @@
 import { Link, Outlet, useNavigate, useLocation } from "react-router-dom";
 import { User, signOut } from "firebase/auth";
 import { auth } from "../firebase";
-import { LayoutDashboard, FileUp, Settings, LogOut } from "lucide-react";
+import { LayoutDashboard, FileUp, Wallet, Settings, LogOut } from "lucide-react";
 
 export default function Layout({ user }: { user: User }) {
   const navigate = useNavigate();
@@ -12,10 +12,11 @@ export default function Layout({ user }: { user: User }) {
     navigate("/login");
   };
 
-  const navItems = [
-    { name: "Dashboard", path: "/", icon: <LayoutDashboard className="w-5 h-5" /> },
-    { name: "Upload Document", path: "/upload", icon: <FileUp className="w-5 h-5" /> },
-  ];
+ const navItems = [
+  { name: "Dashboard", path: "/", icon: <LayoutDashboard className="w-5 h-5" /> },
+  { name: "Upload Document", path: "/upload", icon: <FileUp className="w-5 h-5" /> },
+  { name: "Income & Savings", path: "/income", icon: <Wallet className="w-5 h-5" /> },
+];
 
   return (
     <div className="flex h-screen bg-gray-50 text-gray-900 font-sans">

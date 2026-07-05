@@ -58,3 +58,28 @@ export const EXPENSE_CATEGORIES = [
 ] as const;
 
 export type ExpenseCategory = typeof EXPENSE_CATEGORIES[number];
+
+export const INCOME_CATEGORIES = [
+  "Salary",
+  "Freelance / Contract",
+  "Business Income",
+  "Investment Returns",
+  "Interest",
+  "Gift",
+  "Refund",
+  "Savings Contribution",
+  "Other Income",
+] as const;
+
+export type IncomeCategory = typeof INCOME_CATEGORIES[number];
+
+export interface IncomeRecord {
+  id: string;
+  userId: string;
+  source: string;
+  category: IncomeCategory;
+  amount: number;
+  date: string;       // user-entered transaction date, e.g. "2026-07-05"
+  notes?: string;
+  createdAt: number;  // Date.now(), for sorting/audit — mirrors DocumentRecord.uploadedAt
+}
