@@ -1,11 +1,11 @@
-import { startOfWeek, startOfMonth, format } from "date-fns";
+import { startOfWeek, startOfMonth, format, parseISO, isValid } from "date-fns";
 import { DocumentRecord, IncomeRecord } from "../types";
 
 export type Granularity = "daily" | "weekly" | "monthly";
 
 export interface PeriodSummary {
-  periodKey: string; // sortable key, e.g. "2026-07-05" | week-start date | "2026-07"
-  label: string;      // display label, e.g. "Jul 5" | "Week of Jul 6" | "Jul 2026"
+  periodKey: string;
+  label: string;
   income: number;
   expense: number;
   net: number;
@@ -13,13 +13,16 @@ export interface PeriodSummary {
 
 function resolveExpenseDate(doc: DocumentRecord): Date {
   const raw = doc.data.date;
-  const parsed = raw ? new Date(raw) : new Date(doc.uploadedAt);
-  return isNaN(parsed.getTime()) ? new Date(doc.uploadedAt) : parsed;
+  if (raw) {
+    const parsed = parseISO(raw);
+    if (isValid(parsed)) return parsed;
+  }
+  return new Date(doc.uploadedAt);
 }
 
 function resolveIncomeDate(record: IncomeRecord): Date {
-  const parsed = new Date(record.date);
-  return isNaN(parsed.getTime()) ? new Date(record.createdAt) : parsed;
+  const parsed = parseISO(record.date);
+  return isValid(parsed) ? parsed : new Date(record.createdAt);
 }
 
 function bucketDate(date: Date, granularity: Granularity): { key: string; label: string } {
@@ -27,18 +30,13 @@ function bucketDate(date: Date, granularity: Granularity): { key: string; label:
     return { key: format(date, "yyyy-MM-dd"), label: format(date, "MMM d") };
   }
   if (granularity === "weekly") {
-    const start = startOfWeek(date, { weekStartsOn: 1 }); // Monday-start weeks
+    const start = startOfWeek(date, { weekStartsOn: 1 });
     return { key: format(start, "yyyy-MM-dd"), label: `Week of ${format(start, "MMM d")}` };
   }
   const start = startOfMonth(date);
   return { key: format(start, "yyyy-MM"), label: format(start, "MMM yyyy") };
 }
 
-/**
- * Groups expenses (DocumentRecord) and income (IncomeRecord) into period
- * buckets by day, week, or month. Shared by Dashboard charts and any future
- * feature (exports, budget comparisons, recurring-summary emails, etc).
- */
 export function aggregateByPeriod(
   documents: DocumentRecord[],
   income: IncomeRecord[],

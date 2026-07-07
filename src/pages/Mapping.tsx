@@ -5,6 +5,7 @@ import { Save, Download, ArrowLeft, Loader2 } from "lucide-react";
 import * as XLSX from "xlsx";
 import { addDoc, collection } from "firebase/firestore";
 import { db, auth } from "../firebase";
+import { buildExportRows } from "../utils/buildExportRows";
 
 const AVAILABLE_COLUMNS = [
   "Date",
@@ -47,58 +48,35 @@ export default function Mapping() {
   };
 
   const handleExportAndSave = async () => {
-    if (!auth.currentUser) return;
-    setIsSaving(true);
+  if (!auth.currentUser) return;
+  setIsSaving(true);
 
-    try {
-      // 1. Generate Excel Data
-      const rowData: Record<string, any> = {};
-      mappings.forEach(m => {
-        if (m.excelColumn) {
-          rowData[m.excelColumn] = (state.extractedData as any)[m.extractedKey];
-        }
-      });
+  try {
+    // 1. Generate Excel Data
+    const rowsToExport = buildExportRows(state.extractedData, mappings);
 
-      // If there are line items, we can either add them as separate rows or summarize.
-      // One-to-Split pattern:
-      const rowsToExport = [];
-      if (state.extractedData.items && state.extractedData.items.length > 0) {
-        state.extractedData.items.forEach(item => {
-          rowsToExport.push({
-            ...rowData,
-            "Item Name": item.name,
-            "Quantity": item.quantity,
-            "Item Price": item.price,
-          });
-        });
-      } else {
-        rowsToExport.push(rowData);
-      }
+    const worksheet = XLSX.utils.json_to_sheet(rowsToExport);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Expenses");
+    
+    XLSX.writeFile(workbook, `DocuGrid_${state.fileName.split('.')[0] || 'export'}.xlsx`);
 
-      const worksheet = XLSX.utils.json_to_sheet(rowsToExport);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Expenses");
-      
-      // Download
-      XLSX.writeFile(workbook, `DocuGrid_${state.fileName.split('.')[0] || 'export'}.xlsx`);
+    await addDoc(collection(db, "documents"), {
+      userId: auth.currentUser.uid,
+      fileName: state.fileName,
+      uploadedAt: Date.now(),
+      data: state.extractedData,
+      mappings: mappings
+    });
 
-      // 2. Save to Firebase
-      await addDoc(collection(db, "documents"), {
-        userId: auth.currentUser.uid,
-        fileName: state.fileName,
-        uploadedAt: Date.now(),
-        data: state.extractedData,
-        mappings: mappings
-      });
-
-      navigate("/");
-    } catch (error) {
-      console.error("Error saving document:", error);
-      alert("Failed to save data. Please try again.");
-    } finally {
-      setIsSaving(false);
-    }
-  };
+    navigate("/");
+  } catch (error) {
+    console.error("Error saving document:", error);
+    alert("Failed to save data. Please try again.");
+  } finally {
+    setIsSaving(false);
+  }
+};
 
   return (
     <div className="p-8 max-w-4xl mx-auto space-y-8 pb-24">
