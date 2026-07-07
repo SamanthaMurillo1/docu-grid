@@ -3,11 +3,11 @@ import { User } from "firebase/auth";
 import { collection, query, where, getDocs, orderBy } from "firebase/firestore";
 import { db } from "../firebase";
 import { DocumentRecord, IncomeRecord } from "../types";
+import { aggregateByPeriod, Granularity } from "../utils/reportAggregation";
 import { FileText, TrendingUp, DollarSign, Calendar, Wallet } from "lucide-react";
-import { format } from "date-fns";
 import {
-  Area,
-  AreaChart,
+  BarChart,
+  Bar,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -31,10 +31,17 @@ const COLORS = [
   "#f97316",
 ];
 
+const GRANULARITY_OPTIONS: { value: Granularity; label: string }[] = [
+  { value: "daily", label: "Daily" },
+  { value: "weekly", label: "Weekly" },
+  { value: "monthly", label: "Monthly" },
+];
+
 export default function Dashboard({ user }: { user: User }) {
   const [documents, setDocuments] = useState<DocumentRecord[]>([]);
   const [income, setIncome] = useState<IncomeRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [granularity, setGranularity] = useState<Granularity>("daily");
 
   useEffect(() => {
     async function fetchDocuments() {
@@ -77,23 +84,8 @@ export default function Dashboard({ user }: { user: User }) {
   const totalIncome = income.reduce((sum, r) => sum + (r.amount || 0), 0);
   const netCashFlow = totalIncome - totalSpent;
 
-  // Group by date for the cash flow trend chart
-  const chartData = documents
-    .map(doc => ({
-      date: doc.data.date || format(doc.uploadedAt, 'yyyy-MM-dd'),
-      amount: doc.data.total || 0
-    }))
-    .reduce((acc, curr) => {
-      const existing = acc.find(item => item.date === curr.date);
-      if (existing) {
-        existing.amount += curr.amount;
-      } else {
-        acc.push({ ...curr });
-      }
-      return acc;
-    }, [] as { date: string, amount: number }[])
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-    .slice(-30);
+  // Period aggregation (daily/weekly/monthly), capped to the most recent 12 buckets
+  const periodData = aggregateByPeriod(documents, income, granularity).slice(-12);
 
   // Group by category for the spending breakdown chart
   const categoryData = documents
@@ -157,7 +149,7 @@ export default function Dashboard({ user }: { user: User }) {
             <Wallet className="w-6 h-6" />
           </div>
           <div>
-            <p className="text-sm font-medium text-gray-500">Net Cash Flow</p>
+            <p className="text-sm font-medium text-gray-500">Net (Income − Expenses)</p>
             <p className={`text-2xl font-bold ${netCashFlow >= 0 ? "text-green-700" : "text-red-700"}`}>
               {netCashFlow >= 0 ? "+" : "-"}${Math.abs(netCashFlow).toFixed(2)}
             </p>
@@ -166,29 +158,41 @@ export default function Dashboard({ user }: { user: User }) {
       </div>
 
       {/* Charts */}
-      {(chartData.length > 0 || categoryData.length > 0) && (
+      {(periodData.length > 0 || categoryData.length > 0) && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {chartData.length > 0 && (
+          {periodData.length > 0 && (
             <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-              <h2 className="text-lg font-semibold text-gray-900 mb-6">Cash Flow Trends</h2>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-lg font-semibold text-gray-900">Income vs. Expenses</h2>
+                <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
+                  {GRANULARITY_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.value}
+                      onClick={() => setGranularity(opt.value)}
+                      className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${
+                        granularity === opt.value
+                          ? "bg-white text-gray-900 shadow-sm"
+                          : "text-gray-500 hover:text-gray-700"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <div className="h-64 w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={chartData}>
-                    <defs>
-                      <linearGradient id="colorAmount" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#4f46e5" stopOpacity={0.1}/>
-                        <stop offset="95%" stopColor="#4f46e5" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <XAxis dataKey="date" stroke="#9ca3af" fontSize={12} tickLine={false} axisLine={false} />
+                  <BarChart data={periodData}>
+                    <XAxis dataKey="label" stroke="#9ca3af" fontSize={11} tickLine={false} axisLine={false} />
                     <YAxis stroke="#9ca3af" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `$${value}`} />
                     <Tooltip
                       contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                      itemStyle={{ color: '#4f46e5', fontWeight: 600 }}
-                      formatter={(value: number) => [`$${value.toFixed(2)}`, 'Amount']}
+                      formatter={(value: number, name: string) => [`$${value.toFixed(2)}`, name === "income" ? "Income" : "Expenses"]}
                     />
-                    <Area type="monotone" dataKey="amount" stroke="#4f46e5" strokeWidth={3} fillOpacity={1} fill="url(#colorAmount)" />
-                  </AreaChart>
+                    <Legend wrapperStyle={{ fontSize: '12px' }} />
+                    <Bar dataKey="income" fill="#10b981" radius={[6, 6, 0, 0]} name="Income" />
+                    <Bar dataKey="expense" fill="#ef4444" radius={[6, 6, 0, 0]} name="Expenses" />
+                  </BarChart>
                 </ResponsiveContainer>
               </div>
             </div>
@@ -222,6 +226,41 @@ export default function Dashboard({ user }: { user: User }) {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Period Summary Table */}
+      {periodData.length > 0 && (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="p-6 border-b border-gray-100">
+            <h2 className="text-lg font-semibold text-gray-900">
+              {GRANULARITY_OPTIONS.find(o => o.value === granularity)?.label} Summary
+            </h2>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-gray-50 text-gray-500 font-medium">
+                <tr>
+                  <th className="px-6 py-4">Period</th>
+                  <th className="px-6 py-4">Income</th>
+                  <th className="px-6 py-4">Expenses</th>
+                  <th className="px-6 py-4">Net</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {[...periodData].reverse().map((p) => (
+                  <tr key={p.periodKey} className="hover:bg-gray-50/50 transition-colors">
+                    <td className="px-6 py-4 font-medium text-gray-900">{p.label}</td>
+                    <td className="px-6 py-4 text-green-700">${p.income.toFixed(2)}</td>
+                    <td className="px-6 py-4 text-red-700">${p.expense.toFixed(2)}</td>
+                    <td className={`px-6 py-4 font-medium ${p.net >= 0 ? "text-green-700" : "text-red-700"}`}>
+                      {p.net >= 0 ? "+" : "-"}${Math.abs(p.net).toFixed(2)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
