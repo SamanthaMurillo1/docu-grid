@@ -27,6 +27,14 @@ export default function App() {
     return unsubscribe;
   }, []);
 
+  // Forces a fresh user object so Layout/ProfilePanel re-render after
+  // updateProfile() changes (display name, photo, etc.)
+  const refreshUser = () => {
+    if (auth.currentUser) {
+      setUser({ ...auth.currentUser } as User);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
@@ -39,8 +47,8 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={user ? <Navigate to="/" /> : <Login />} />
-        
-        <Route path="/" element={user ? <Layout user={user} /> : <Navigate to="/login" />}>
+
+        <Route path="/" element={user ? <Layout user={user} onUserUpdate={refreshUser} /> : <Navigate to="/login" />}>
           <Route index element={<Dashboard user={user!} />} />
           <Route path="upload" element={<Upload />} />
           <Route path="review" element={<Review />} />
@@ -51,4 +59,3 @@ export default function App() {
     </BrowserRouter>
   );
 }
-

@@ -4,10 +4,39 @@ import {
   signInWithEmailAndPassword,
   signInWithPopup,
   updateProfile,
+  AuthError,
 } from "firebase/auth";
 import { auth, googleProvider } from "../firebase";
 import { useNavigate } from "react-router-dom";
 import { FileText } from "lucide-react";
+
+function getAuthErrorMessage(error: unknown, mode: "signin" | "signup"): string {
+  const code = (error as AuthError)?.code;
+
+  switch (code) {
+    case "auth/email-already-in-use":
+      return "That email is already registered. Try signing in instead.";
+    case "auth/invalid-credential":
+    case "auth/wrong-password":
+      return "Incorrect email or password. Please try again.";
+    case "auth/user-not-found":
+      return "No account found with that email. Try signing up instead.";
+    case "auth/invalid-email":
+      return "That email address doesn't look valid.";
+    case "auth/weak-password":
+      return "Password is too weak. Use at least 6 characters.";
+    case "auth/too-many-requests":
+      return "Too many attempts. Please wait a moment and try again.";
+    case "auth/network-request-failed":
+      return "Can't reach the server. Check your internet connection and try again.";
+    case "auth/popup-closed-by-user":
+      return "Sign-in was cancelled.";
+    default:
+      return mode === "signup"
+        ? "Could not create your account. Please try again."
+        : "Something went wrong signing in. Please try again.";
+  }
+}
 
 export default function Login() {
   const navigate = useNavigate();
@@ -15,6 +44,7 @@ export default function Login() {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -27,13 +57,19 @@ export default function Login() {
       navigate("/");
     } catch (error) {
       console.error("Error signing in with Google:", error);
-      setError("Google sign-in failed. Check your Firebase Auth settings and try again.");
+      setError(getAuthErrorMessage(error, "signin"));
     }
   };
 
   const handleEmailAuth = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
+
+    if (isSignUp && password !== confirmPassword) {
+      setError("Passwords don't match. Please re-enter them.");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -47,7 +83,7 @@ export default function Login() {
       navigate("/");
     } catch (error) {
       console.error("Error signing in with email and password:", error);
-      setError(isSignUp ? "Could not create that account. Check the details and try again." : "Invalid email or password.");
+      setError(getAuthErrorMessage(error, mode));
     } finally {
       setIsSubmitting(false);
     }
@@ -70,6 +106,7 @@ export default function Login() {
             onClick={() => {
               setMode("signin");
               setError(null);
+              setConfirmPassword("");
             }}
             className={`py-2 rounded-lg text-sm font-medium transition-all ${
               !isSignUp ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
@@ -140,6 +177,24 @@ export default function Login() {
             />
           </div>
 
+          {isSignUp && (
+            <div className="text-left">
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
+                Confirm Password
+              </label>
+              <input
+                id="confirmPassword"
+                type="password"
+                value={confirmPassword}
+                onChange={(event) => setConfirmPassword(event.target.value)}
+                className="w-full rounded-xl border border-gray-300 px-4 py-3 text-gray-900 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                placeholder="Re-enter your password"
+                minLength={6}
+                required={isSignUp}
+              />
+            </div>
+          )}
+
           {error && (
             <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
               {error}
@@ -161,7 +216,7 @@ export default function Login() {
           <span className="text-xs font-medium uppercase text-gray-400">or</span>
           <div className="h-px flex-1 bg-gray-200" />
         </div>
-        
+
         <button
           onClick={handleGoogleSignIn}
           className="w-full flex items-center justify-center gap-3 bg-white border border-gray-300 text-gray-700 px-6 py-3 rounded-xl font-medium hover:bg-gray-50 transition-all shadow-sm active:scale-[0.98]"
