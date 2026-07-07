@@ -6,7 +6,8 @@ import { GoogleGenAI } from "@google/genai";
 import { createServer as createViteServer } from "vite";
 import { applicationDefault, cert, initializeApp } from "firebase-admin/app";
 import fs from "fs";
-import { EXPENSE_CATEGORIES } from "./src/types.ts";
+import { extractDocument } from "./lib/extractDocument.ts";
+
 // Initialize Firebase Admin
 try {
   // Try to find the service account key locally (for local dev)
@@ -26,7 +27,10 @@ try {
 }
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-const upload = multer({ storage: multer.memoryStorage() });
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB, matches Upload.tsx's stated limit
+});
 const PORT = Number(process.env.PORT ?? 3000);
 const HMR_PORT = Number(process.env.HMR_PORT ?? 24678);
 
@@ -43,50 +47,12 @@ async function startServer() {
         return res.status(400).json({ error: "No file uploaded" });
       }
 
-      // Convert buffer to base64
       const base64Data = req.file.buffer.toString("base64");
-      
-      const prompt = `
-      Analyze this document (receipt, invoice, or financial document).
-      Extract the following fields and return them as a clean JSON object.
-      - storeName: The name of the store or vendor.
-      - date: The date of the transaction.
-      - subtotal: The amount before tax.
-      - tax: The tax amount.
-      - total: The total amount paid.
-      - category: Choose the single best-fitting category from this exact list
-        (return the string exactly as written): ${EXPENSE_CATEGORIES.join(", ")}.
-      - items: An array of line items with "name", "quantity", and "price".
 
-      Return ONLY the raw JSON object, without markdown formatting like \`\`\`json.
-    `;
-
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: [
-          prompt,
-          {
-            inlineData: {
-              data: base64Data,
-              mimeType: req.file.mimetype,
-            },
-          },
-        ],
+      const extractedData = await extractDocument(ai, {
+        base64Data,
+        mimeType: req.file.mimetype,
       });
-
-      let jsonStr = response.text || "{}";
-      // Clean up potential markdown formatting
-      if (jsonStr.startsWith("\`\`\`json")) {
-        jsonStr = jsonStr.replace(/\`\`\`json/g, "").replace(/\`\`\`/g, "").trim();
-      }
-
-      const extractedData = JSON.parse(jsonStr);
-
-      // Validate category against the allowed list — Gemini can occasionally
-      // drift from the exact strings we gave it, so fall back safely.
-      if (!EXPENSE_CATEGORIES.includes(extractedData.category)) {
-        extractedData.category = "Other";
-      }
 
       res.json(extractedData);
     } catch (error) {

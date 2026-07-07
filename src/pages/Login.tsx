@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { validateSignupForm } from "../utils/signupValidation";
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -65,9 +66,12 @@ export default function Login() {
     event.preventDefault();
     setError(null);
 
-    if (isSignUp && password !== confirmPassword) {
-      setError("Passwords don't match. Please re-enter them.");
-      return;
+    if (isSignUp) {
+      const validation = validateSignupForm(password, confirmPassword);
+      if (!validation.valid) {
+        setError(validation.error);
+        return;
+      }
     }
 
     setIsSubmitting(true);
