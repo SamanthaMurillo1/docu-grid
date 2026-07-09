@@ -1,14 +1,25 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, Outlet, useNavigate, useLocation } from "react-router-dom";
 import { User, signOut } from "firebase/auth";
 import { auth } from "../firebase";
-import { LayoutDashboard, FileUp, Wallet, LogOut } from "lucide-react";
+import { LayoutDashboard, FileUp, Wallet, LogOut, Moon, Sun } from "lucide-react";
 import ProfilePanel from "./ProfilePanel";
+
+const APP_THEME_KEY = "docugrid-app-theme";
 
 export default function Layout({ user, onUserUpdate }: { user: User; onUserUpdate: () => void }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [themeMenuOpen, setThemeMenuOpen] = useState(false);
+
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    return localStorage.getItem(APP_THEME_KEY) === "dark";
+  });
+
+  useEffect(() => {
+    localStorage.setItem(APP_THEME_KEY, isDarkMode ? "dark" : "light");
+  }, [isDarkMode]);
 
   const handleSignOut = async () => {
     await signOut(auth);
@@ -22,7 +33,7 @@ export default function Layout({ user, onUserUpdate }: { user: User; onUserUpdat
   ];
 
   return (
-    <div className="flex h-screen bg-gray-50 text-gray-900 font-sans">
+    <div className={`flex h-screen bg-gray-50 text-gray-900 font-sans ${isDarkMode ? "theme-dark" : ""}`}>
       {/* Sidebar */}
       <aside className="w-64 bg-white border-r border-gray-200 flex flex-col shadow-sm">
         <div className="p-6 border-b border-gray-100 flex items-center gap-3">
@@ -83,7 +94,49 @@ export default function Layout({ user, onUserUpdate }: { user: User; onUserUpdat
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 overflow-auto relative">
+        {/* App-wide Theme Button */}
+        <div className="absolute top-6 right-7 z-30">
+          <button
+            type="button"
+            onClick={() => setThemeMenuOpen((open) => !open)}
+            className="theme-button flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-medium transition-colors"
+          >
+            {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            Theme
+          </button>
+
+          {themeMenuOpen && (
+            <div className="theme-menu absolute right-0 mt-2 w-40 rounded-xl border p-1 shadow-lg">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsDarkMode(false);
+                  setThemeMenuOpen(false);
+                }}
+                className={`theme-menu-item w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
+                  !isDarkMode ? "theme-menu-item-active" : ""
+                }`}
+              >
+                Light Mode
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setIsDarkMode(true);
+                  setThemeMenuOpen(false);
+                }}
+                className={`theme-menu-item w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${
+                  isDarkMode ? "theme-menu-item-active" : ""
+                }`}
+              >
+                Dark Mode
+              </button>
+            </div>
+          )}
+        </div>
+
         <Outlet />
       </main>
 

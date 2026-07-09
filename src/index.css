@@ -1,1 +1,211 @@
 @import "tailwindcss";
+
+/* App-wide dark theme overrides */
+.theme-dark {
+  background-color: #000000 !important;
+  color: #f9fafb !important;
+}
+
+/* Main backgrounds */
+.theme-dark .bg-white,
+.theme-dark .bg-gray-50 {
+  background-color: #050505 !important;
+}
+
+.theme-dark .bg-gray-100 {
+  background-color: #111111 !important;
+}
+
+/* Cards, panels, and surfaces */
+.theme-dark .shadow-sm,
+.theme-dark .shadow-lg,
+.theme-dark .shadow-xl,
+.theme-dark .shadow-2xl {
+  box-shadow: none !important;
+}
+
+/* Borders */
+.theme-dark .border-gray-100,
+.theme-dark .border-gray-200,
+.theme-dark .border-gray-300 {
+  border-color: #27272a !important;
+}
+
+/* Primary text */
+.theme-dark .text-gray-900,
+.theme-dark .text-gray-800,
+.theme-dark .text-gray-700 {
+  color: #f9fafb !important;
+}
+
+/* Secondary text */
+.theme-dark .text-gray-600 {
+  color: #d1d5db !important;
+}
+
+.theme-dark .text-gray-500,
+.theme-dark .text-gray-400 {
+  color: #9ca3af !important;
+}
+
+/* Keep financial colors readable and consistent */
+.theme-dark .text-red-600,
+.theme-dark .text-red-700 {
+  color: #dc2626 !important;
+}
+
+.theme-dark .text-green-600,
+.theme-dark .text-green-700 {
+  color: #059669 !important;
+}
+
+/* Inputs and selects */
+.theme-dark input,
+.theme-dark select,
+.theme-dark textarea {
+  background-color: #0a0a0a !important;
+  color: #f9fafb !important;
+  border-color: #27272a !important;
+}
+
+.theme-dark input::placeholder,
+.theme-dark textarea::placeholder {
+  color: #71717a !important;
+}
+
+/* Sidebar active links */
+.theme-dark .bg-indigo-50 {
+  background-color: #111827 !important;
+}
+
+.theme-dark .text-indigo-700 {
+  color: #818cf8 !important;
+}
+
+/* Hover states */
+.theme-dark .hover\:bg-gray-50:hover,
+.theme-dark .hover\:bg-gray-100:hover {
+  background-color: #18181b !important;
+}
+
+.theme-dark .hover\:text-gray-900:hover,
+.theme-dark .hover\:text-gray-700:hover,
+.theme-dark .hover\:text-gray-600:hover {
+  color: #ffffff !important;
+}
+
+/* Badges and soft icon backgrounds */
+.theme-dark .bg-blue-50 {
+  background-color: #172554 !important;
+}
+
+.theme-dark .bg-green-50 {
+  background-color: #052e16 !important;
+}
+
+.theme-dark .bg-purple-50 {
+  background-color: #3b0764 !important;
+}
+
+.theme-dark .bg-red-50 {
+  background-color: #450a0a !important;
+}
+
+.theme-dark .text-blue-600 {
+  color: #60a5fa !important;
+}
+
+.theme-dark .text-purple-600 {
+  color: #c084fc !important;
+}
+
+/* Theme button */
+.theme-button {
+  background-color: #ffffff;
+  border-color: #e5e7eb;
+  color: #374151;
+}
+
+.theme-button:hover {
+  background-color: #f9fafb;
+}
+
+.theme-dark .theme-button {
+  background-color: #050505;
+  border-color: #27272a;
+  color: #f9fafb;
+}
+
+.theme-dark .theme-button:hover {
+  background-color: #111111;
+}
+
+/* Theme dropdown */
+.theme-menu {
+  background-color: #ffffff;
+  border-color: #e5e7eb;
+}
+
+.theme-dark .theme-menu {
+  background-color: #050505;
+  border-color: #27272a;
+}
+
+.theme-menu-item {
+  color: #374151;
+}
+
+.theme-menu-item:hover {
+  background-color: #f3f4f6;
+}
+
+.theme-dark .theme-menu-item {
+  color: #d1d5db;
+}
+
+.theme-dark .theme-menu-item:hover {
+  background-color: #18181b;
+  color: #ffffff;
+}
+
+.theme-menu-item-active {
+  background-color: #eef2ff;
+  color: #4338ca;
+  font-weight: 600;
+}
+
+.theme-dark .theme-menu-item-active {
+  background-color: #18181b;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+/* Recharts tooltip */
+.theme-dark .recharts-default-tooltip {
+  background-color: #050505 !important;
+  border-color: #27272a !important;
+  color: #f9fafb !important;
+}
+
+.theme-dark .recharts-tooltip-label,
+.theme-dark .recharts-tooltip-item {
+  color: #f9fafb !important;
+}
+
+/* Scrollbar polish for dark mode */
+.theme-dark ::-webkit-scrollbar {
+  width: 10px;
+}
+
+.theme-dark ::-webkit-scrollbar-track {
+  background: #050505;
+}
+
+.theme-dark ::-webkit-scrollbar-thumb {
+  background: #27272a;
+  border-radius: 999px;
+}
+
+.theme-dark ::-webkit-scrollbar-thumb:hover {
+  background: #3f3f46;
+}
