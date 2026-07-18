@@ -5,7 +5,6 @@ import {
   deleteDoc,
   doc,
   getDocs,
-  orderBy,
   query,
   where,
 } from "firebase/firestore";
@@ -34,11 +33,15 @@ export default function Income() {
     try {
       const q = query(
         collection(db, "income"),
-        where("userId", "==", userId),
-        orderBy("date", "desc")
+        where("userId", "==", userId)
       );
+
       const snapshot = await getDocs(q);
-      const docs = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as IncomeRecord));
+
+      const docs = snapshot.docs
+        .map(d => ({ id: d.id, ...d.data() } as IncomeRecord))
+        .sort((a, b) => b.date.localeCompare(a.date));
+
       setRecords(docs);
     } catch (err) {
       console.error("Error fetching income records:", err);

@@ -14,6 +14,7 @@ import Review from "./pages/Review";
 import Mapping from "./pages/Mapping";
 import Layout from "./components/Layout";
 import Income from "./pages/Income";
+import History from "./pages/History";
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -54,6 +55,7 @@ export default function App() {
           <Route path="review" element={<Review />} />
           <Route path="mapping" element={<Mapping />} />
           <Route path="income" element={<Income />} />
+          <Route path="history" element={<History user={user!} />} />
         </Route>
       </Routes>
     </BrowserRouter>

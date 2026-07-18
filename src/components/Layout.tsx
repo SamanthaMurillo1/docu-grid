@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, Outlet, useNavigate, useLocation } from "react-router-dom";
 import { User, signOut } from "firebase/auth";
 import { auth } from "../firebase";
-import { LayoutDashboard, FileUp, Wallet, LogOut, Moon, Sun } from "lucide-react";
+import { LayoutDashboard, FileUp, Wallet, LogOut, Moon, Sun, History } from "lucide-react";
 import ProfilePanel from "./ProfilePanel";
 
 const APP_THEME_KEY = "docugrid-app-theme";
@@ -12,6 +12,7 @@ export default function Layout({ user, onUserUpdate }: { user: User; onUserUpdat
   const location = useLocation();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [themeMenuOpen, setThemeMenuOpen] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const [isDarkMode, setIsDarkMode] = useState(() => {
     return localStorage.getItem(APP_THEME_KEY) === "dark";
@@ -30,6 +31,7 @@ export default function Layout({ user, onUserUpdate }: { user: User; onUserUpdat
     { name: "Dashboard", path: "/", icon: <LayoutDashboard className="w-5 h-5" /> },
     { name: "Upload Document", path: "/upload", icon: <FileUp className="w-5 h-5" /> },
     { name: "Income & Savings", path: "/income", icon: <Wallet className="w-5 h-5" /> },
+    { name: "History", path: "/history", icon: <History className="w-5 h-5" /> },
   ];
 
   return (
@@ -84,7 +86,7 @@ export default function Layout({ user, onUserUpdate }: { user: User; onUserUpdat
           </button>
 
           <button
-            onClick={handleSignOut}
+            onClick={() => setShowLogoutConfirm(true)}
             className="flex items-center gap-3 px-3 py-2.5 w-full rounded-lg text-red-600 hover:bg-red-50 transition-colors"
           >
             <LogOut className="w-5 h-5" />
@@ -139,6 +141,53 @@ export default function Layout({ user, onUserUpdate }: { user: User; onUserUpdat
 
         <Outlet />
       </main>
+
+
+
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={() => setShowLogoutConfirm(false)}
+          />
+
+          <div className="relative bg-white border border-gray-100 shadow-2xl rounded-2xl w-full max-w-sm p-6">
+            <div className="flex items-start gap-4">
+              <div className="w-11 h-11 rounded-xl bg-red-50 text-red-600 flex items-center justify-center flex-shrink-0">
+                <LogOut className="w-5 h-5" />
+              </div>
+
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">
+                  Log out?
+                </h2>
+                <p className="text-sm text-gray-500 mt-1">
+                  Are you sure you want to log out of DocuGrid?
+                </p>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                type="button"
+                onClick={() => setShowLogoutConfirm(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Log out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
 
       <ProfilePanel
         user={user}
