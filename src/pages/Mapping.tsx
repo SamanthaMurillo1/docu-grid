@@ -32,6 +32,7 @@ export default function Mapping() {
   ]);
 
   const [isSaving, setIsSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
   if (!state) {
     return (
@@ -48,34 +49,35 @@ export default function Mapping() {
   };
 
   const handleExportAndSave = async () => {
-  if (!auth.currentUser) return;
-  setIsSaving(true);
+    if (!auth.currentUser) return;
 
-  try {
-    // 1. Generate Excel Data
-    const rowsToExport = buildExportRows(state.extractedData, mappings);
+    setIsSaving(true);
+    setSaveMessage(null);
 
-    const worksheet = XLSX.utils.json_to_sheet(rowsToExport);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Expenses");
-    
-    XLSX.writeFile(workbook, `DocuGrid_${state.fileName.split('.')[0] || 'export'}.xlsx`);
+    try {
+      const rowsToExport = buildExportRows(state.extractedData, mappings);
 
-    await addDoc(collection(db, "documents"), {
-      userId: auth.currentUser.uid,
-      fileName: state.fileName,
-      uploadedAt: Date.now(),
-      data: state.extractedData,
-      mappings: mappings
-    });
+      const worksheet = XLSX.utils.json_to_sheet(rowsToExport);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Expenses");
 
-    navigate("/");
-  } catch (error) {
-    console.error("Error saving document:", error);
-    alert("Failed to save data. Please try again.");
-  } finally {
-    setIsSaving(false);
-  }
+      await addDoc(collection(db, "documents"), {
+        userId: auth.currentUser.uid,
+        fileName: state.fileName,
+        uploadedAt: Date.now(),
+        data: state.extractedData,
+        mappings: mappings,
+      });
+
+      XLSX.writeFile(workbook, `DocuGrid_${state.fileName.split(".")[0] || "export"}.xlsx`);
+
+      setSaveMessage("Document saved and spreadsheet exported successfully.");
+    } catch (error) {
+      console.error("Error saving document:", error);
+      alert("Failed to save data. Please try again.");
+    } finally {
+      setIsSaving(false);
+    }
 };
 
   return (
@@ -120,6 +122,13 @@ export default function Mapping() {
         </div>
       </div>
 
+      {saveMessage && (
+        <div className="fixed bottom-20 left-64 right-0 px-8 z-10">
+          <div className="bg-green-50 border border-green-100 text-green-700 rounded-xl px-4 py-3 text-sm max-w-4xl mx-auto">
+            {saveMessage}
+          </div>
+        </div>
+      )}
       <div className="fixed bottom-0 left-64 right-0 bg-white border-t border-gray-200 p-4 flex justify-between items-center z-10 px-8">
         <button
           onClick={() => navigate(-1)}
@@ -136,11 +145,16 @@ export default function Mapping() {
             className="flex items-center gap-2 bg-indigo-600 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-indigo-700 transition-colors shadow-sm disabled:opacity-70"
           >
             {isSaving ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Saving & Exporting...
+              </>
             ) : (
-              <Download className="w-4 h-4" />
+              <>
+                <Download className="w-4 h-4" />
+                Save & Export Spreadsheet
+              </>
             )}
-            Save & Export Spreadsheet
           </button>
         </div>
       </div>

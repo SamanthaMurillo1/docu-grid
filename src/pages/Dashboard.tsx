@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { User } from "firebase/auth";
-import { collection, query, where, getDocs, orderBy } from "firebase/firestore";
+import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "../firebase";
 import { DocumentRecord, IncomeRecord } from "../types";
 import { aggregateByPeriod, Granularity } from "../utils/reportAggregation";
@@ -48,11 +48,15 @@ export default function Dashboard({ user }: { user: User }) {
       try {
         const q = query(
           collection(db, "documents"),
-          where("userId", "==", user.uid),
-          orderBy("uploadedAt", "desc")
+          where("userId", "==", user.uid)
         );
+
         const querySnapshot = await getDocs(q);
-        const docs = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as DocumentRecord));
+
+        const docs = querySnapshot.docs
+          .map(doc => ({ id: doc.id, ...doc.data() } as DocumentRecord))
+          .sort((a, b) => (b.uploadedAt || 0) - (a.uploadedAt || 0));
+
         setDocuments(docs);
       } catch (error) {
         console.error("Error fetching documents:", error);
@@ -65,11 +69,15 @@ export default function Dashboard({ user }: { user: User }) {
       try {
         const q = query(
           collection(db, "income"),
-          where("userId", "==", user.uid),
-          orderBy("date", "desc")
+          where("userId", "==", user.uid)
         );
+
         const querySnapshot = await getDocs(q);
-        const records = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as IncomeRecord));
+
+        const records = querySnapshot.docs
+          .map(doc => ({ id: doc.id, ...doc.data() } as IncomeRecord))
+          .sort((a, b) => b.date.localeCompare(a.date));
+
         setIncome(records);
       } catch (error) {
         console.error("Error fetching income:", error);
