@@ -1,0 +1,13 @@
+server:
+  port: 8080
+
+spring:
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+
+firebase:
+  credentials-path: ${GOOGLE_APPLICATION_CREDENTIALS:/config/serviceAccountKey.json}
+  project-id: docu-signup
+  database-url: ${FIREBASE_DATABASE_URL:https://docu-signup-default-rtdb.firebaseio.com}
+  storage-bucket: ${FIREBASE_STORAGE_BUCKET:docu-signup.appspot.com}
+  use-emulator: false
