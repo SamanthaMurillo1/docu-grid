@@ -12,6 +12,7 @@ import Dashboard from "./pages/Dashboard";
 import Upload from "./pages/Upload";
 import Review from "./pages/Review";
 import Mapping from "./pages/Mapping";
+import BatchReview from "./pages/BatchReview";
 import Layout from "./components/Layout";
 import Income from "./pages/Income";
 import History from "./pages/History";
@@ -54,6 +55,7 @@ export default function App() {
           <Route path="upload" element={<Upload />} />
           <Route path="review" element={<Review />} />
           <Route path="mapping" element={<Mapping />} />
+          <Route path="batch-review" element={<BatchReview />} />
           <Route path="income" element={<Income />} />
           <Route path="history" element={<History user={user!} />} />
         </Route>

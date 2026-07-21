@@ -1,7 +1,10 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { ExtractedData, EXPENSE_CATEGORIES } from "../types";
-import { ArrowRight, FileText, CheckCircle2, Tag } from "lucide-react";
+import { collection, query, where, getDocs } from "firebase/firestore";
+import { db, auth } from "../firebase";
+import { ExtractedData, EXPENSE_CATEGORIES, DocumentRecord } from "../types";
+import { findDuplicateDocument } from "../utils/duplicateDetection";
+import { ArrowRight, FileText, CheckCircle2, Tag, AlertTriangle } from "lucide-react";
 
 export default function Review() {
   const location = useLocation();
@@ -18,6 +21,37 @@ export default function Review() {
       category: null,
       items: [],
     }
+  );
+
+  // Loaded once so we can warn about likely double-uploads (same vendor,
+  // date, and total as something already saved) before the user re-saves it.
+  const [existingDocuments, setExistingDocuments] = useState<DocumentRecord[]>([]);
+
+  useEffect(() => {
+    async function fetchExisting() {
+      if (!auth.currentUser) return;
+      try {
+        const q = query(
+          collection(db, "documents"),
+          where("userId", "==", auth.currentUser.uid)
+        );
+        const snapshot = await getDocs(q);
+        setExistingDocuments(snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as DocumentRecord)));
+      } catch (err) {
+        console.error("Error checking for duplicate documents:", err);
+      }
+    }
+    fetchExisting();
+  }, []);
+
+  const duplicateMatch = useMemo(
+    () =>
+      findDuplicateDocument(existingDocuments, {
+        storeName: data.storeName,
+        date: data.date,
+        total: data.total,
+      }),
+    [existingDocuments, data.storeName, data.date, data.total]
   );
 
   if (!state) {
@@ -60,6 +94,20 @@ export default function Review() {
           {state.fileName}
         </div>
       </div>
+
+      {duplicateMatch && (
+        <div className="flex items-start gap-3 bg-amber-50 border border-amber-100 text-amber-800 rounded-xl px-4 py-3 text-sm">
+          <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="font-medium">This looks like a duplicate.</p>
+            <p className="mt-0.5">
+              You already have "{duplicateMatch.fileName}" saved with the same vendor, date, and total
+              (${duplicateMatch.data.total?.toFixed(2)}). If this is a different receipt, adjust the
+              date, vendor, or total below and it'll clear automatically.
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Header Fields */}
@@ -154,7 +202,11 @@ export default function Review() {
                 onChange={(e) =>
                   handleInputChange("total", e.target.value === "" ? 0 : parseFloat(e.target.value))
                 }
-                className="w-full px-4 py-2 bg-indigo-50/50 border border-indigo-100 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-indigo-900 font-semibold"
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none transition-all font-semibold ${
+                  duplicateMatch
+                    ? "bg-amber-50 border-amber-200 text-amber-900"
+                    : "bg-indigo-50/50 border-indigo-100 text-indigo-900"
+                }`}
               />
             </div>
           </div>
@@ -224,14 +276,28 @@ export default function Review() {
 
       {/* Floating Action Bar */}
       <div className="fixed bottom-0 left-64 right-0 bg-white border-t border-gray-200 p-4 flex justify-between items-center z-10 px-8">
-        <p className="text-sm text-gray-500">Ensure all fields are accurate before proceeding.</p>
-        <button
-          onClick={handleConfirm}
-          className="flex items-center gap-2 bg-indigo-600 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-indigo-700 transition-colors"
-        >
-          Confirm & Proceed to Mapping
-          <ArrowRight className="w-4 h-4" />
-        </button>
+        <p className="text-sm text-gray-500">
+          {duplicateMatch
+            ? "You can discard this upload or proceed if it's a different receipt."
+            : "Ensure all fields are accurate before proceeding."}
+        </p>
+        <div className="flex items-center gap-3">
+          {duplicateMatch && (
+            <button
+              onClick={() => navigate("/upload")}
+              className="px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              Discard This Upload
+            </button>
+          )}
+          <button
+            onClick={handleConfirm}
+            className="flex items-center gap-2 bg-indigo-600 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-indigo-700 transition-colors"
+          >
+            {duplicateMatch ? "Proceed Anyway" : "Confirm & Proceed to Mapping"}
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
       </div>
     </div>
   );
