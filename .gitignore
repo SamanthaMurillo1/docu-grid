@@ -8,10 +8,6 @@ coverage/
 !.env.example
 # Firebase Admin SDK private key
 firebase-admin-key.json
-
-# Environment variables
+# Ignore service account key (do not commit)
+config/serviceAccountKey.json
 .env
-
-# Dependency folders
-node_modules/
-dist/
