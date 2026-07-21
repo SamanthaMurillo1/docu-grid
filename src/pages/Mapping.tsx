@@ -32,7 +32,6 @@ export default function Mapping() {
   ]);
 
   const [isSaving, setIsSaving] = useState(false);
-  const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
   if (!state) {
     return (
@@ -52,7 +51,6 @@ export default function Mapping() {
     if (!auth.currentUser) return;
 
     setIsSaving(true);
-    setSaveMessage(null);
 
     try {
       const rowsToExport = buildExportRows(state.extractedData, mappings);
@@ -71,11 +69,12 @@ export default function Mapping() {
 
       XLSX.writeFile(workbook, `DocuGrid_${state.fileName.split(".")[0] || "export"}.xlsx`);
 
-      setSaveMessage("Document saved and spreadsheet exported successfully.");
+      // Document is saved and the spreadsheet has downloaded — the task is
+      // done, so move on to History instead of leaving the user parked here.
+      navigate("/history");
     } catch (error) {
       console.error("Error saving document:", error);
       alert("Failed to save data. Please try again.");
-    } finally {
       setIsSaving(false);
     }
 };
@@ -122,13 +121,6 @@ export default function Mapping() {
         </div>
       </div>
 
-      {saveMessage && (
-        <div className="fixed bottom-20 left-64 right-0 px-8 z-10">
-          <div className="bg-green-50 border border-green-100 text-green-700 rounded-xl px-4 py-3 text-sm max-w-4xl mx-auto">
-            {saveMessage}
-          </div>
-        </div>
-      )}
       <div className="fixed bottom-0 left-64 right-0 bg-white border-t border-gray-200 p-4 flex justify-between items-center z-10 px-8">
         <button
           onClick={() => navigate(-1)}
