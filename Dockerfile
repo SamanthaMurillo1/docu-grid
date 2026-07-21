@@ -18,4 +18,4 @@ COPY --from=builder /app/package.json ./package.json
 ENV GOOGLE_APPLICATION_CREDENTIALS=/config/serviceAccountKey.json
 
 EXPOSE 8080
-CMD ["node", "dist/server.cjs"]
+CMD ["node", "dist/server.js"]
