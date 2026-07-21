@@ -2,9 +2,10 @@ import { useEffect, useState } from "react";
 import { User } from "firebase/auth";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "../firebase";
-import { DocumentRecord, IncomeRecord } from "../types";
+import { DocumentRecord, IncomeRecord, EXPENSE_CATEGORIES } from "../types";
 import { aggregateByPeriod, Granularity } from "../utils/reportAggregation";
-import { FileText, TrendingUp, DollarSign, Calendar, Wallet } from "lucide-react";
+import { filterDocuments } from "../utils/filterDocuments";
+import { FileText, TrendingUp, DollarSign, Calendar, Wallet, Search, X } from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -37,11 +38,19 @@ const GRANULARITY_OPTIONS: { value: Granularity; label: string }[] = [
   { value: "monthly", label: "Monthly" },
 ];
 
+const RECENT_DOCS_LIMIT = 10;
+
 export default function Dashboard({ user }: { user: User }) {
   const [documents, setDocuments] = useState<DocumentRecord[]>([]);
   const [income, setIncome] = useState<IncomeRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [granularity, setGranularity] = useState<Granularity>("daily");
+
+  // Recent Documents filters (mirrors History.tsx's filter set)
+  const [searchTerm, setSearchTerm] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const [minTotal, setMinTotal] = useState("");
+  const [maxTotal, setMaxTotal] = useState("");
 
   useEffect(() => {
     async function fetchDocuments() {
@@ -108,6 +117,24 @@ export default function Dashboard({ user }: { user: User }) {
       return acc;
     }, [] as { name: string, value: number }[])
     .sort((a, b) => b.value - a.value);
+
+  // Filters below apply only to the Recent Documents table — stats cards and
+  // charts above intentionally keep reflecting the full, unfiltered dataset.
+  const hasActiveFilters = !!(searchTerm || categoryFilter || minTotal || maxTotal);
+
+  const filteredDocuments = filterDocuments(documents, {
+    searchTerm,
+    category: categoryFilter,
+    minTotal,
+    maxTotal,
+  });
+
+  const clearFilters = () => {
+    setSearchTerm("");
+    setCategoryFilter("");
+    setMinTotal("");
+    setMaxTotal("");
+  };
 
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-8">
@@ -274,8 +301,63 @@ export default function Dashboard({ user }: { user: User }) {
 
       {/* Recent Documents */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-        <div className="p-6 border-b border-gray-100">
-          <h2 className="text-lg font-semibold text-gray-900">Recent Documents</h2>
+        <div className="p-6 border-b border-gray-100 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-gray-900">Recent Documents</h2>
+            {hasActiveFilters && (
+              <button
+                onClick={clearFilters}
+                className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-gray-900 transition-colors"
+              >
+                <X className="w-3.5 h-3.5" />
+                Clear filters
+              </button>
+            )}
+          </div>
+
+          {documents.length > 0 && (
+            <div className="flex flex-col md:flex-row gap-3">
+              <div className="relative flex-1">
+                <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Search file name or vendor..."
+                  className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                />
+              </div>
+
+              <select
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none md:w-48"
+              >
+                <option value="">All categories</option>
+                {EXPENSE_CATEGORIES.map((cat) => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+
+              <input
+                type="number"
+                step="0.01"
+                value={minTotal}
+                onChange={(e) => setMinTotal(e.target.value)}
+                placeholder="Min $"
+                className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none md:w-28"
+              />
+
+              <input
+                type="number"
+                step="0.01"
+                value={maxTotal}
+                onChange={(e) => setMaxTotal(e.target.value)}
+                placeholder="Max $"
+                className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none md:w-28"
+              />
+            </div>
+          )}
         </div>
 
         {loading ? (
@@ -283,6 +365,10 @@ export default function Dashboard({ user }: { user: User }) {
         ) : documents.length === 0 ? (
           <div className="p-8 text-center text-gray-500">
             No documents processed yet. Upload a receipt or invoice to get started.
+          </div>
+        ) : filteredDocuments.length === 0 ? (
+          <div className="p-8 text-center text-gray-500">
+            No documents match your filters.
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -297,7 +383,7 @@ export default function Dashboard({ user }: { user: User }) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {documents.slice(0, 10).map((doc) => (
+                {filteredDocuments.slice(0, RECENT_DOCS_LIMIT).map((doc) => (
                   <tr key={doc.id} className="hover:bg-gray-50/50 transition-colors">
                     <td className="px-6 py-4 font-medium text-gray-900 flex items-center gap-3">
                       <FileText className="w-4 h-4 text-gray-400" />
@@ -322,6 +408,11 @@ export default function Dashboard({ user }: { user: User }) {
                 ))}
               </tbody>
             </table>
+            {filteredDocuments.length > RECENT_DOCS_LIMIT && (
+              <p className="px-6 py-3 text-xs text-gray-400 border-t border-gray-100">
+                Showing {RECENT_DOCS_LIMIT} of {filteredDocuments.length} matching documents. Visit History for the full list.
+              </p>
+            )}
           </div>
         )}
       </div>
