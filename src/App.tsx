@@ -16,6 +16,7 @@ import BatchReview from "./pages/BatchReview";
 import Layout from "./components/Layout";
 import Income from "./pages/Income";
 import History from "./pages/History";
+import ManualEntry from "./pages/ManualEntry";
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -58,6 +59,7 @@ export default function App() {
           <Route path="batch-review" element={<BatchReview />} />
           <Route path="income" element={<Income />} />
           <Route path="history" element={<History user={user!} />} />
+          <Route path="manual-entry" element={<ManualEntry />} />
         </Route>
       </Routes>
     </BrowserRouter>

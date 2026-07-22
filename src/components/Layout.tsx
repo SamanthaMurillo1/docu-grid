@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, Outlet, useNavigate, useLocation } from "react-router-dom";
 import { User, signOut } from "firebase/auth";
 import { auth } from "../firebase";
-import { LayoutDashboard, FileUp, Wallet, LogOut, Moon, Sun, History } from "lucide-react";
+import { LayoutDashboard, FileUp, Wallet, LogOut, Moon, Sun, History, Edit3 } from "lucide-react";
 import ProfilePanel from "./ProfilePanel";
 
 const APP_THEME_KEY = "docugrid-app-theme";
@@ -30,6 +30,7 @@ export default function Layout({ user, onUserUpdate }: { user: User; onUserUpdat
   const navItems = [
     { name: "Dashboard", path: "/", icon: <LayoutDashboard className="w-5 h-5" /> },
     { name: "Upload Document", path: "/upload", icon: <FileUp className="w-5 h-5" /> },
+    { name: "Manual Entry", path: "/manual-entry", icon: <Edit3 className="w-5 h-5" /> },
     { name: "Income & Savings", path: "/income", icon: <Wallet className="w-5 h-5" /> },
     { name: "History", path: "/history", icon: <History className="w-5 h-5" /> },
   ];

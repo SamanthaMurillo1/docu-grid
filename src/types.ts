@@ -36,6 +36,7 @@ export interface DocumentRecord {
 }
 
 export const EXPENSE_CATEGORIES = [
+  "Other",
   "Groceries",
   "Restaurants & Dining",
   "Coffee & Cafes",
@@ -54,7 +55,6 @@ export const EXPENSE_CATEGORIES = [
   "Education",
   "Gifts & Donations",
   "Investments & Savings",
-  "Other",
 ] as const;
 
 export type ExpenseCategory = typeof EXPENSE_CATEGORIES[number];
